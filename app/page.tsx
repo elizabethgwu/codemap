@@ -22,7 +22,7 @@ export default function Home() {
   const [submittedCode, setSubmittedCode] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [allConcepts, setAllConcepts] = useState<ConceptCard[]>([]);
-  const [conceptsOpen, setConceptsOpen] = useState(true);
+  const [conceptsOpen, setConceptsOpen] = useState(false);
   const [codePanelOpen, setCodePanelOpen] = useState(true);
   const [mapDimensions, setMapDimensions] = useState({ width: 600, height: 500 });
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -58,7 +58,7 @@ export default function Home() {
     setSubmittedCode(message);
 
     try {
-      const res = await fetch("/api/analyze", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
@@ -150,7 +150,7 @@ export default function Home() {
       <div className="flex-1 flex overflow-hidden">
         {/* Input code panel — always visible when code has been submitted */}
         {codePanelOpen && submittedCode && (
-          <div className="w-[340px] shrink-0 flex flex-col border-r border-[#222] bg-[#0f0f0f]">
+          <div className="w-[500px] shrink-0 flex flex-col border-r border-[#222] bg-[#0f0f0f]">
             <div className="flex items-center justify-between px-4 py-2 border-b border-[#222]">
               <span className="text-[10px] font-mono text-[#555] tracking-wider">YOUR CODE</span>
               <button
