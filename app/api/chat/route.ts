@@ -42,13 +42,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error("Anthropic API error:", errText);
-      return NextResponse.json(
-        { error: "Failed to analyze code" },
-        { status: response.status }
-      );
-    }
+  const errText = await response.text();
+  console.error("Anthropic API error:", errText);
+  return NextResponse.json(
+    { error: errText },  // return raw error instead
+    { status: response.status }
+  );
+}
 
     const data = await response.json();
     const text = data.content
