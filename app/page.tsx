@@ -19,9 +19,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResult | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [submittedCode, setSubmittedCode] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [allConcepts, setAllConcepts] = useState<ConceptCard[]>([]);
   const [conceptsOpen, setConceptsOpen] = useState(true);
+  const [codePanelOpen, setCodePanelOpen] = useState(true);
   const [mapDimensions, setMapDimensions] = useState({ width: 600, height: 500 });
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -53,9 +55,10 @@ export default function Home() {
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
     setSelectedNodeId(null);
+    setSubmittedCode(message);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
@@ -78,7 +81,7 @@ export default function Home() {
         // Accumulate concepts (dedup by title)
         setAllConcepts((prev) => {
           const existing = new Set(prev.map((c) => c.title));
-          const newConcepts = (analysis.concepts ?? []).filter((c) => !existing.has(c.title));
+          const newConcepts = analysis.concepts.filter((c) => !existing.has(c.title));
           return [...prev, ...newConcepts];
         });
 
@@ -90,14 +93,6 @@ export default function Home() {
           timestamp: Date.now(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
-      } else {
-        const errMsg: ChatMessage = {
-          id: `msg_${Date.now()}`,
-          role: "assistant",
-          content: "Error: Could not parse the response. Please try again.",
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, errMsg]);
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -153,6 +148,27 @@ export default function Home() {
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Input code panel — always visible when code has been submitted */}
+        {codePanelOpen && submittedCode && (
+          <div className="w-[340px] shrink-0 flex flex-col border-r border-[#222] bg-[#0f0f0f]">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-[#222]">
+              <span className="text-[10px] font-mono text-[#555] tracking-wider">YOUR CODE</span>
+              <button
+                onClick={() => setCodePanelOpen(false)}
+                className="text-[#444] hover:text-[#888] text-xs transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <CodePanel
+              submittedCode={submittedCode}
+              analysis={currentAnalysis}
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={handleNodeSelect}
+            />
+          </div>
+        )}
+
         {/* Main workspace */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {currentAnalysis ? (
@@ -180,7 +196,7 @@ export default function Home() {
                     onClose={() => setSelectedNodeId(null)}
                   />
 
-                  {/* MiniMap (only in code-only view or when map is large) */}
+                  {/* MiniMap */}
                   {viewMode !== "map" && (
                     <MiniMap
                       nodes={currentAnalysis.nodes}
@@ -201,7 +217,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Code Panel */}
+              {/* Analysis Code Panel */}
               {(viewMode === "code" || viewMode === "split") && (
                 <div
                   className={`overflow-hidden bg-[#0f0f0f] ${
@@ -209,12 +225,12 @@ export default function Home() {
                   }`}
                 >
                   <CodePanel
+                    submittedCode={submittedCode}
                     analysis={currentAnalysis}
                     selectedNodeId={selectedNodeId}
                     onNodeSelect={handleNodeSelect}
                   />
 
-                  {/* MiniMap in code-only view */}
                   {viewMode === "code" && (
                     <div className="absolute bottom-20 right-80">
                       <MiniMap
@@ -272,13 +288,6 @@ export default function Home() {
                       <div className="w-2.5 h-2.5 rounded-full bg-[#E5A832] loading-node" style={{ animationDelay: "0.6s" }} />
                     </div>
                     <span className="text-xs text-[#666] font-mono">Mapping code structure...</span>
-                  </div>
-                )}
-
-                {/* Error messages */}
-                {!isLoading && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (
-                  <div className="mt-4 px-4 py-3 rounded-lg border border-[#E05252]/30 bg-[#E05252]/10 text-xs text-[#E05252] font-mono text-center">
-                    {messages[messages.length - 1].content}
                   </div>
                 )}
               </div>

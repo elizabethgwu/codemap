@@ -7,13 +7,6 @@ interface ChatInputProps {
   isLoading: boolean;
 }
 
-const EXAMPLE_PROMPTS = [
-  "Write a Python function to find the longest palindromic substring",
-  "Build a rate limiter using the token bucket algorithm in JavaScript",
-  "Write a binary search tree with insert and search in Python",
-  "Create a debounce function in TypeScript with cancel support",
-];
-
 export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -41,20 +34,6 @@ export default function ChatInput({ onSubmit, isLoading }: ChatInputProps) {
 
   return (
     <div className="border-t border-[#222] bg-[#0a0a0a]">
-      {/* Example prompts when empty */}
-      {!input && !isLoading && (
-        <div className="px-4 pt-3 pb-1 flex flex-wrap gap-2">
-          {EXAMPLE_PROMPTS.map((prompt, i) => (
-            <button
-              key={i}
-              onClick={() => setInput(prompt)}
-              className="text-[11px] px-2.5 py-1.5 rounded-md border border-[#222] text-[#666] hover:text-[#aaa] hover:border-[#444] transition-colors truncate max-w-[280px]"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className="flex items-end gap-3 p-4">
         <textarea

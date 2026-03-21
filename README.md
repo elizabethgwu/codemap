@@ -1,6 +1,6 @@
 # CodeMap — Visual Code Reasoning
 
-**A prototype that transforms AI code assistance into a visual, navigable learning experience.**
+**A prototype that allows you to see what your code is doing and how AI works with it so you can learn better.**
 
 Instead of just showing you the answer, CodeMap breaks code into visual node maps that reveal the *structure of reasoning* — scope, processing, output, and decision points — so you build understanding, not just solutions.
 
