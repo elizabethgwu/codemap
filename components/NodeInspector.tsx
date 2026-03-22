@@ -171,9 +171,21 @@ export default function NodeInspector({ node, onClose, onVariableClick, activeVa
                   Alternatives considered
                 </div>
                 {node.decision.alternatives.map((alt, i) => (
-                  <div key={i} className="pl-3 border-l-2 border-[#333]">
+                  <div key={i}>
                     <div className="text-[#bbb]">{alt.option}</div>
-                    <div className="text-[#888] mt-0.5">↳ {alt.tradeoff}</div>
+                    <div className="flex items-start gap-2 pt-1 pb-0.5">
+                      <div
+                        className="shrink-0"
+                        style={{
+                          width: 10,
+                          height: 12,
+                          borderLeft: '1px solid #2a2a2a',
+                          borderBottom: '1px solid #2a2a2a',
+                          borderBottomLeftRadius: 3,
+                        }}
+                      />
+                      <p className="text-xs text-[#888] leading-relaxed">{alt.tradeoff}</p>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -28,6 +28,7 @@ export default function Home() {
   const [variablesWidth, setVariablesWidth] = useState(272);
   const [critiqueOpen, setCritiqueOpen] = useState(false);
   const [critiqueWidth, setCritiqueWidth] = useState(288);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [colorblindMode, setColorblindMode] = useState(false);
   const [lightMode, setLightMode] = useState(false);
   const [highlightedVariable, setHighlightedVariable] = useState<string | null>(null);
@@ -98,6 +99,7 @@ export default function Home() {
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
+    setErrorMessage(null);
     setSelectedNodeId(null);
     setSubmittedCode(message);
     setExplanationCollapsed(false);
@@ -108,16 +110,23 @@ export default function Home() {
         body: JSON.stringify({ message }),
       });
 
-      const data = await res.json();
+      if (!res.ok || !res.body) throw new Error("Request failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        if (buffer.includes("\ndata: ") || buffer.startsWith("data: ")) break;
+      }
+      const dataLine = buffer.split("\n").find((l) => l.startsWith("data: "));
+      if (!dataLine) throw new Error("No data received");
+      const data = JSON.parse(dataLine.slice(6));
 
       if (data.error) {
-        const errMsg: ChatMessage = {
-          id: `msg_${Date.now()}`,
-          role: "assistant",
-          content: `Error: ${data.error}`,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, errMsg]);
+        setErrorMessage(data.error);
       } else if (data.analysis) {
         const analysis = data.analysis as AnalysisResult;
         setCurrentAnalysis(analysis);
@@ -154,13 +163,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      const errMsg: ChatMessage = {
-        id: `msg_${Date.now()}`,
-        role: "assistant",
-        content: "Something went wrong. Please check your API key and try again.",
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => [...prev, errMsg]);
+      setErrorMessage("Something went wrong. Please check your API key and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -261,6 +264,7 @@ export default function Home() {
     setSubmittedCode(null);
     setSelectedNodeId(null);
     setExplanationCollapsed(false);
+    setErrorMessage(null);
   }, []);
 
   // Update a variable name and/or value, reflecting changes in the code
@@ -336,12 +340,7 @@ export default function Home() {
       {/* Top bar */}
       <header className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-[#222] bg-[#0a0a0a]">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-gradient-to-br from-[#4A90D9] to-[#4CAF7D] flex items-center justify-center text-[10px] font-bold text-white">
-              GB
-            </div>
-            <h1 className="text-sm font-semibold tracking-tight">Greybox</h1>
-          </div>
+          <h1 className="text-sm font-semibold tracking-tight">Greybox</h1>
           <span className="text-[10px] font-mono text-[#999] tracking-wider border border-[#444] rounded px-1.5 py-0.5">
             PROTOTYPE
           </span>
@@ -486,6 +485,7 @@ export default function Home() {
                   selectedNodeId={selectedNodeId}
                   onNodeSelect={handleNodeSelect}
                   highlightedVariable={highlightedVariable}
+                  colorblindMode={colorblindMode}
                 />
               </>
             ) : (
@@ -552,6 +552,23 @@ export default function Home() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          ) : errorMessage ? (
+            /* Error state */
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center max-w-sm space-y-5 animate-fade-in">
+                <p className="text-[80px] font-bold leading-none tracking-tighter text-[#222]">500</p>
+                <div>
+                  <p className="text-sm font-semibold text-[#ddd] mb-1">Analysis failed</p>
+                  <p className="text-xs text-[#888] leading-relaxed">{errorMessage}</p>
+                </div>
+                <button
+                  onClick={handleNew}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#333] text-xs font-mono text-[#999] hover:text-[#ccc] hover:border-[#555] transition-colors"
+                >
+                  ↩ paste new code
+                </button>
               </div>
             </div>
           ) : (

@@ -18,6 +18,7 @@ interface CodePanelProps {
   selectedNodeId: string | null;
   onNodeSelect: (nodeId: string | null) => void;
   highlightedVariable?: string | null;
+  colorblindMode?: boolean;
 }
 
 function getLanguageAlias(lang: string): string {
@@ -45,7 +46,7 @@ function HighlightedLine({ code, language }: { code: string; language: string })
   return <code ref={ref} className={`language-${language}`}>{code || " "}</code>;
 }
 
-export default function CodePanel({ submittedCode, analysis, selectedNodeId, onNodeSelect, highlightedVariable }: CodePanelProps) {
+export default function CodePanel({ submittedCode, analysis, selectedNodeId, onNodeSelect, highlightedVariable, colorblindMode }: CodePanelProps) {
   const code = analysis?.code ?? submittedCode ?? "";
   const language = analysis?.language ? getLanguageAlias(analysis.language) : "javascript";
   const lines = code.split("\n");
@@ -148,7 +149,7 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
                   className={`flex items-start group transition-colors ${analysis ? "cursor-pointer" : ""} ${highlight ? "hover:bg-white/5" : "hover:bg-white/[0.02]"}`}
                   style={{
                     background: varHighlight
-                      ? `color-mix(in srgb, #E5A832 18%, ${highlight ? `color-mix(in srgb, ${highlight.colorVar} 10%, transparent)` : "transparent"})`
+                      ? `color-mix(in srgb, var(--accent-decision) 18%, ${highlight ? `color-mix(in srgb, ${highlight.colorVar} 10%, transparent)` : "transparent"})`
                       : highlight
                       ? `color-mix(in srgb, ${highlight.colorVar} ${isThisNodeSelected ? 10 : 5}%, transparent)`
                       : undefined,

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT, buildUserMessage } from "@/lib/prompts";
 import { AnalysisResult } from "@/lib/types";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const ANALYZE_CODE_TOOL: Anthropic.Tool = {
   name: "analyze_code",
@@ -96,6 +96,8 @@ const ANALYZE_CODE_TOOL: Anthropic.Tool = {
       },
       concepts: {
         type: "array",
+        description: "Generate 1 to 3 concept cards. Maximum 3.",
+        maxItems: 3,
         items: {
           type: "object",
           required: ["id", "title", "principle", "relevance", "difficulty"],
@@ -111,6 +113,8 @@ const ANALYZE_CODE_TOOL: Anthropic.Tool = {
       },
       critiques: {
         type: "array",
+        description: "Generate exactly 2 alternatives. No more.",
+        maxItems: 2,
         items: {
           type: "object",
           required: ["id", "title", "summary", "explanation", "tradeoff", "complexity"],
@@ -121,7 +125,7 @@ const ANALYZE_CODE_TOOL: Anthropic.Tool = {
             explanation: { type: "string" },
             tradeoff: { type: "string" },
             complexity: { type: "string", enum: ["simpler", "similar", "more complex"] },
-            codeExample: { type: "string" },
+            codeExample: { type: "string", description: "Optional. 5–8 lines maximum. Omit if not needed." },
           },
         },
       },
@@ -130,57 +134,75 @@ const ANALYZE_CODE_TOOL: Anthropic.Tool = {
 };
 
 export async function POST(req: NextRequest) {
-  try {
-    const { message } = await req.json();
+  const { message } = await req.json();
 
-    if (!message || typeof message !== "string") {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 }
-      );
-    }
-
-    const client = new Anthropic();
-
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8096,
-      system: SYSTEM_PROMPT,
-      tools: [ANALYZE_CODE_TOOL],
-      tool_choice: { type: "tool", name: "analyze_code" },
-      messages: [{ role: "user", content: buildUserMessage(message) }],
-    });
-
-    const toolBlock = response.content.find((block) => block.type === "tool_use");
-
-    if (!toolBlock || toolBlock.type !== "tool_use") {
-      return NextResponse.json(
-        { error: "No structured output returned from API" },
-        { status: 500 }
-      );
-    }
-
-    const analysis = toolBlock.input as AnalysisResult;
-    if (!analysis.code) analysis.code = message;
-
-    if (!analysis.nodes || !analysis.edges) {
-      return NextResponse.json(
-        { error: "Incomplete analysis result" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ analysis });
-  } catch (error) {
-    console.error("Analysis error:", error instanceof Error ? error.message : error);
-    const isTimeout =
-      error instanceof Error &&
-      (error.message.includes("timeout") || error.message.includes("timed out") || (error as { status?: number }).status === 408);
-    return NextResponse.json(
-      { error: isTimeout
-          ? "Analysis timed out — please try again with a shorter snippet."
-          : "Analysis failed. Please paste your code again." },
-      { status: 500 }
+  if (!message || typeof message !== "string") {
+    return new Response(
+      `data: ${JSON.stringify({ error: "Message is required" })}\n\n`,
+      { status: 400, headers: { "Content-Type": "text/event-stream" } }
     );
   }
+
+  const client = new Anthropic();
+  const encoder = new TextEncoder();
+
+  const body = new ReadableStream({
+    async start(controller) {
+      const send = (text: string) => controller.enqueue(encoder.encode(text));
+
+      const heartbeat = setInterval(() => send(": heartbeat\n\n"), 15000);
+
+      try {
+        const stream = client.messages.stream({
+          model: "claude-sonnet-4-6",
+          max_tokens: 4096,
+          system: SYSTEM_PROMPT,
+          tools: [ANALYZE_CODE_TOOL],
+          tool_choice: { type: "tool", name: "analyze_code" },
+          messages: [{ role: "user", content: buildUserMessage(message) }],
+        });
+        const response = await stream.finalMessage();
+        clearInterval(heartbeat);
+
+        const toolBlock = response.content.find((b) => b.type === "tool_use");
+        if (!toolBlock || toolBlock.type !== "tool_use") {
+          send(`data: ${JSON.stringify({ error: "No structured output returned from API" })}\n\n`);
+          return;
+        }
+
+        const analysis = toolBlock.input as AnalysisResult;
+        if (!analysis.code) analysis.code = message;
+
+        if (!analysis.nodes || !analysis.edges) {
+          send(`data: ${JSON.stringify({ error: "Incomplete analysis result" })}\n\n`);
+          return;
+        }
+
+        send(`data: ${JSON.stringify({ analysis })}\n\n`);
+      } catch (error) {
+        clearInterval(heartbeat);
+        console.error("Analysis error:", error instanceof Error ? error.message : error);
+        const isTimeout =
+          error instanceof Error &&
+          (error.message.includes("timeout") ||
+            error.message.includes("timed out") ||
+            (error as { status?: number }).status === 408);
+        send(`data: ${JSON.stringify({
+          error: isTimeout
+            ? "Analysis timed out — please try again with a shorter snippet."
+            : "Analysis failed. Please paste your code again.",
+        })}\n\n`);
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(body, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
