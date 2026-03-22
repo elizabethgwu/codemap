@@ -27,6 +27,14 @@ const MIN_LAYER_GAP = 280;
 // Max name label ~220px wide centered, so nodes need > 220px horizontal clearance.
 const MIN_NODE_GAP = 240;
 
+// Returns how far the shape extends above/below its center point.
+// hexagon/diamond have a vertex at top and bottom; rect/rounded-rect have a flat edge.
+function shapeVerticalExtent(type: NodeType): { top: number; bottom: number } {
+  const shape = NODE_CONFIG[type].shape;
+  const extent = (shape === "rectangle" || shape === "rounded-rect") ? NODE_SIZE * 0.7 : NODE_SIZE;
+  return { top: extent, bottom: extent };
+}
+
 function computeLayout(nodes: CodeNode[], edges: CodeEdge[], width: number, height: number): LayoutNode[] {
   const adj = new Map<string, string[]>();
   const inDeg = new Map<string, number>();
@@ -275,9 +283,8 @@ export default function NodeMap({
       edge: CodeEdge;
       source: LayoutNode;
       target: LayoutNode;
+      sourceBottom: number;
       targetTop: number;
-      cx1: number; cx2: number;
-      midY: number;
       labelX: number; labelY: number;
       isConnected: boolean;
       isDimmed: boolean;
@@ -292,35 +299,15 @@ export default function NodeMap({
         ? edge.source === selectedNodeId || edge.target === selectedNodeId
         : false;
       const isDimmed = selectedNodeId ? !isConnected : false;
-      const targetTop = target.y - NODE_SIZE;
-      const midY = (source.y + targetTop) / 2;
+      const sourceBottom = source.y + shapeVerticalExtent(source.type).bottom;
+      const targetTop = target.y - shapeVerticalExtent(target.type).top;
       routes.push({
-        edge, source, target, targetTop,
-        cx1: source.x, cx2: target.x,
-        midY,
+        edge, source, target, sourceBottom, targetTop,
         labelX: (source.x + target.x) / 2,
-        labelY: midY,
+        labelY: (sourceBottom + targetTop) / 2,
         isConnected, isDimmed,
       });
     });
-
-    // Bow crossing edge pairs in opposite directions to reduce overlap
-    for (let i = 0; i < routes.length; i++) {
-      for (let j = i + 1; j < routes.length; j++) {
-        const r1 = routes[i], r2 = routes[j];
-        const dxS = r1.source.x - r2.source.x;
-        const dxT = r1.target.x - r2.target.x;
-        // Crossing when source x-order and target x-order are swapped
-        if (dxS !== 0 && dxT !== 0 && Math.sign(dxS) !== Math.sign(dxT)) {
-          const bow = 45;
-          r1.cx1 += bow; r1.cx2 += bow;
-          r2.cx1 -= bow; r2.cx2 -= bow;
-          // Shift labels sideways too so they don't stack
-          r1.labelX += bow * 0.5;
-          r2.labelX -= bow * 0.5;
-        }
-      }
-    }
 
     // Separate labels that are too close vertically (parallel edges, same layer)
     for (let i = 0; i < routes.length; i++) {
@@ -338,11 +325,11 @@ export default function NodeMap({
     // Render unconnected edges first so selected/connected edges appear on top
     const sortedRoutes = [...routes].sort((a, b) => +a.isConnected - +b.isConnected);
 
-    sortedRoutes.forEach(({ edge, source, target, targetTop, cx1, cx2, midY, labelX, labelY, isConnected, isDimmed }) => {
+    sortedRoutes.forEach(({ edge, source, target, sourceBottom, targetTop, labelX, labelY, isConnected, isDimmed }) => {
       const edgeG = g.append("g");
 
       edgeG.append("path")
-        .attr("d", `M ${source.x} ${source.y} C ${cx1} ${midY}, ${cx2} ${midY}, ${target.x} ${targetTop}`)
+        .attr("d", `M ${source.x} ${sourceBottom} L ${target.x} ${targetTop}`)
         .attr("fill", "none")
         .attr("stroke", isConnected ? d3Colors.edgeActive : d3Colors.edgeDefault)
         .attr("stroke-width", isDimmed ? 1 : isConnected ? 2 : 1.5)
@@ -388,6 +375,15 @@ export default function NodeMap({
           event.stopPropagation();
           onNodeSelect(isSelected ? null : node.id);
         });
+
+      // Opaque background rect covers the full visual extent of the node (shape + pills)
+      // so edge lines passing through this area are hidden behind it.
+      nodeG.append("rect")
+        .attr("x", -112).attr("y", -NODE_SIZE - 2)
+        .attr("width", 224).attr("height", NODE_SIZE * 2 + 52)
+        .attr("fill", d3Colors.pillBg)
+        .attr("stroke", "none")
+        .attr("pointer-events", "none");
 
       drawNodeShape(nodeG, node.type, NODE_SIZE, isSelected, d3Colors.pillBg, d3Colors.pillStroke);
 

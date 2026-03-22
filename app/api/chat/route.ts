@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
         // ── Call 1: core analysis (nodes + edges) ──────────────────────────
         const stream1 = client.messages.stream({
           model: "claude-sonnet-4-6",
-          max_tokens: 3072,
+          max_tokens: 4096,
           system: ANALYZE_SYSTEM_PROMPT,
           tools: [ANALYZE_CODE_TOOL],
           tool_choice: { type: "tool", name: "analyze_code" },

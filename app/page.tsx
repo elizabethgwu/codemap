@@ -604,9 +604,9 @@ export default function Home() {
                 <div>
                   <h2 className="text-lg font-semibold mb-2">Visual Code Reasoning</h2>
                   <p className="text-sm text-[#888] leading-relaxed">
-                    Paste code or describe a problem. Greybox breaks it into navigable visual nodes
-                    — showing scope, processing, output, and decision points — so you can see the
-                    reasoning, not just the result.
+                    Paste code or describe a problem. Greybox breaks it into navigable visual nodes showing scope, processing, output, and decision points — so you can see the
+                    reasoning, not just the result. 
+                    <span>For best results, keep code snippets under 200 lines or ask a question.</span>
                   </p>
                 </div>
                 <div className="flex justify-center gap-6 text-xs">
