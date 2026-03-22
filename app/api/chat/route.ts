@@ -10,9 +10,9 @@ const ANALYZE_CODE_TOOL: Anthropic.Tool = {
   description: "Decompose code into a structured visual graph with nodes, edges, and concept cards.",
   input_schema: {
     type: "object" as const,
-    required: ["code", "language", "explanation", "nodes", "edges", "concepts", "critiques"],
+    required: ["language", "explanation", "nodes", "edges", "concepts", "critiques"],
     properties: {
-      code: { type: "string" },
+      code: { type: "string", description: "Only include if you generated or modified the code. Omit if analyzing user-submitted code as-is." },
       language: { type: "string" },
       explanation: { type: "string" },
       nodes: {
@@ -54,6 +54,7 @@ const ANALYZE_CODE_TOOL: Anthropic.Tool = {
                 properties: {
                   text: { type: "string" },
                   confidence: { type: "string", enum: ["high", "medium", "low"] },
+                  reason: { type: "string" },
                   alternative: { type: "string" },
                 },
               },
@@ -160,8 +161,9 @@ export async function POST(req: NextRequest) {
     }
 
     const analysis = toolBlock.input as AnalysisResult;
+    if (!analysis.code) analysis.code = message;
 
-    if (!analysis.code || !analysis.nodes || !analysis.edges) {
+    if (!analysis.nodes || !analysis.edges) {
       return NextResponse.json(
         { error: "Incomplete analysis result" },
         { status: 500 }
@@ -171,8 +173,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ analysis });
   } catch (error) {
     console.error("Analysis error:", error instanceof Error ? error.message : error);
+    const isTimeout =
+      error instanceof Error &&
+      (error.message.includes("timeout") || error.message.includes("timed out") || (error as { status?: number }).status === 408);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: isTimeout
+          ? "Analysis timed out — please try again with a shorter snippet."
+          : "Analysis failed. Please paste your code again." },
       { status: 500 }
     );
   }

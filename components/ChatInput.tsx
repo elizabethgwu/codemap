@@ -17,9 +17,6 @@ interface ChatInputProps {
   variant?: "bottom" | "side";
 }
 
-const LINE_HEIGHT_REM = 1.5; // leading-6 = 1.5rem = 24px
-const PAD_TOP_REM = 0.5;     // py-2 top padding
-
 function detectLanguage(code: string): string {
   if (/^\s*(def |from .+ import|import \w+\n|class \w+.*:)/m.test(code)) return "python";
   if (/^\s*(fn |use |struct |impl |pub |mod |let mut )/m.test(code)) return "rust";
@@ -39,7 +36,6 @@ function escapeHtml(text: string): string {
 export default function ChatInput({ onSubmit, isLoading, variant = "bottom" }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [highlightedHtml, setHighlightedHtml] = useState("");
-  const [scanLine, setScanLine] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
 
@@ -83,18 +79,6 @@ export default function ChatInput({ onSubmit, isLoading, variant = "bottom" }: C
     }
   }, [input, variant]);
 
-  // Line-by-line shimmer scan
-  useEffect(() => {
-    if (!isLoading || variant !== "side") {
-      setScanLine(0);
-      return;
-    }
-    const lineCount = Math.max(input.split("\n").length, 1);
-    const id = setInterval(() => {
-      setScanLine((l) => (l + 1) % lineCount);
-    }, 120);
-    return () => clearInterval(id);
-  }, [isLoading, input, variant]);
 
   const handleSubmit = () => {
     const trimmed = input.trim();
@@ -124,7 +108,7 @@ export default function ChatInput({ onSubmit, isLoading, variant = "bottom" }: C
             ref={highlightRef}
             aria-hidden="true"
             className="absolute inset-0 px-4 py-2 text-sm font-mono leading-6 overflow-hidden pointer-events-none"
-            style={{ whiteSpace: "pre", tabSize: 2 }}
+            style={{ whiteSpace: "pre-wrap", tabSize: 2 }}
             dangerouslySetInnerHTML={{
               __html: highlightedHtml || escapeHtml(input),
             }}
@@ -144,22 +128,6 @@ export default function ChatInput({ onSubmit, isLoading, variant = "bottom" }: C
             spellCheck={false}
           />
 
-          {/* Line-by-line shimmer scan */}
-          {isLoading && (
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              <div
-                className="absolute left-0 right-0"
-                style={{
-                  top: `calc(${scanLine} * ${LINE_HEIGHT_REM}rem + ${PAD_TOP_REM}rem)`,
-                  height: `${LINE_HEIGHT_REM}rem`,
-                  background:
-                    "linear-gradient(90deg, transparent 0%, rgba(74,144,217,0.18) 25%, rgba(76,175,125,0.18) 75%, transparent 100%)",
-                  boxShadow: "0 0 10px rgba(74,144,217,0.2)",
-                  transition: "top 0.1s ease",
-                }}
-              />
-            </div>
-          )}
         </div>
 
         <div className="shrink-0 p-4 border-t border-[#222]">

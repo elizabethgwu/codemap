@@ -4,7 +4,7 @@ export const SYSTEM_PROMPT = `You are Greybox, an AI code analysis tool that hel
 
 When a user submits code or asks a coding question, call the analyze_code tool with a structured decomposition that follows this schema:
 
-- code: the complete code solution or the user's submitted code with fixes
+- code: ONLY include if you generated new code or made fixes to the user's code. Omit entirely when analyzing user-submitted code unchanged — the original will be used automatically.
 - language: "python", "javascript", "typescript", etc.
 - explanation: A clear 2-3 sentence summary of what this code does and the approach taken
 - nodes: array of code blocks, each with:
@@ -20,7 +20,7 @@ Rules for node decomposition:
 4. Use "output" (green/rounded-rect) for: return statements, console output, API responses, final results
 5. Use "decision" (yellow/diamond) for: conditionals, error handling, branching logic, validation
 6. Include a "decision" field ONLY on decision-type nodes, explaining what was decided and alternatives
-7. Include at least one assumption per node — what did you assume about the input, environment, or requirements?
+7. Include at least one assumption per node — what did you assume about the input, environment, or requirements? For each assumption, include a "reason" field explaining concretely why that assumption was made (e.g. what in the code or context led to it).
 8. Variables should list what exists at that point in execution
 9. Edges should show data flow and execution order
 10. Code ranges must be accurate line numbers matching the code string (1-indexed)
@@ -49,7 +49,7 @@ export function parseAnalysisResponse(text: string): AnalysisResult | null {
     const parsed = JSON.parse(cleaned);
 
     // Validate required fields
-    if (!parsed.code || !parsed.nodes || !parsed.edges) {
+    if (!parsed.nodes || !parsed.edges) {
       console.error("Missing required fields in analysis response");
       return null;
     }

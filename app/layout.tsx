@@ -15,6 +15,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link
+          id="prism-theme"
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
         />

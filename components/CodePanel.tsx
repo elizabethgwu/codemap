@@ -159,7 +159,7 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
                   onClick={() => { if (node && analysis) onNodeSelect(node.id === selectedNodeId ? null : node.id); }}
                 >
                   <span className="w-12 shrink-0 text-right pr-3 select-none text-[#888] text-xs leading-6">{lineNum}</span>
-                  <pre className="flex-1 pr-4 overflow-x-auto">
+                  <pre className="flex-1 pr-4 whitespace-pre">
                     <HighlightedLine code={line} language={language} />
                   </pre>
                 </div>

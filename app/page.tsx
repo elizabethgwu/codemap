@@ -76,6 +76,12 @@ export default function Home() {
 
   useEffect(() => {
     document.documentElement.classList.toggle("light", lightMode);
+    const link = document.getElementById("prism-theme") as HTMLLinkElement | null;
+    if (link) {
+      link.href = lightMode
+        ? "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css"
+        : "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css";
+    }
   }, [lightMode]);
 
   const selectedNode: CodeNode | null =

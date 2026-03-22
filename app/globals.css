@@ -57,7 +57,65 @@ html.light.colorblind {
   --accent-decision: #A04880; /* pink-purple   4.9:1 AA */
 }
 
-html.light body { background: #f0ebe3; color: #1c1a17; }
+html.light body {
+  background: #f0ebe3;
+  color: #1c1a17;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+}
+
+/* ── Prism light theme (prism.css) token overrides ─────────────────
+   prism.css defaults fail on beige — all values below verified ≥4.5:1
+   against #f0ebe3 (lum 0.850) and darkest card bg #e1dbd1 (lum 0.775). */
+
+/* slategray (#708090) → 3.5:1 ✗  →  #5a6878  4.95:1 ✓ */
+html.light .token.comment,
+html.light .token.prolog,
+html.light .token.doctype,
+html.light .token.cdata { color: #5a6878 !important; }
+
+/* #999999 → 2.5:1 ✗  →  #626262  5.36:1 ✓ */
+html.light .token.punctuation { color: #626262 !important; }
+
+/* #669900 → 2.9:1 ✗  →  #296b00  5.45:1 ✓ */
+html.light .token.selector,
+html.light .token.attr-name,
+html.light .token.string,
+html.light .token.char,
+html.light .token.builtin,
+html.light .token.inserted { color: #296b00 !important; }
+
+/* #9a6e3a → 3.7:1 ✗ (also has white overlay bg)  →  #6b4c1e  6.16:1 ✓ */
+html.light .token.operator,
+html.light .token.entity,
+html.light .token.url,
+html.light .language-css .token.string,
+html.light .style .token.string {
+  color: #6b4c1e !important;
+  background: transparent !important;
+}
+
+/* #0077aa → 4.3:1 ✗  →  #006699  5.36:1 ✓ */
+html.light .token.atrule,
+html.light .token.attr-value,
+html.light .token.keyword { color: #006699 !important; }
+
+/* #dd4a68 → 4.0:1 ✗  →  #aa003a  6.47:1 ✓ */
+html.light .token.function,
+html.light .token.class-name { color: #aa003a !important; }
+
+/* #ee9900 → 1.9:1 ✗  →  #7a5500  5.63:1 ✓ */
+html.light .token.regex,
+html.light .token.important,
+html.light .token.variable { color: #7a5500 !important; }
+
+/* Prism tomorrow sets background: hsla(0,0%,100%,.5) on operators/urls/etc.
+   Invisible on dark bg, but creates a white slab in light mode — strip it. */
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string { background: transparent !important; }
 
 /* ── Backgrounds ────────────────────────────────────────────────── */
 html.light .bg-\[\#0a0a0a\] { background-color: #f0ebe3 !important; }

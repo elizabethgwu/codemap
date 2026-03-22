@@ -12,6 +12,7 @@ export interface CodeVariable {
 export interface CodeAssumption {
   text: string;
   confidence: "high" | "medium" | "low";
+  reason?: string;      // why this assumption was made
   alternative?: string;
 }
 

@@ -1,7 +1,66 @@
 "use client";
 
 import { useState } from "react";
-import { CodeNode, NODE_CONFIG } from "@/lib/types";
+import { CodeNode, CodeAssumption, NODE_CONFIG } from "@/lib/types";
+
+function AssumptionsSection({ assumptions }: { assumptions: CodeAssumption[] }) {
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  return (
+    <div className="px-4 py-3 border-b border-[#222]">
+      <h4 className="text-[10px] font-mono tracking-wider text-[#888] uppercase mb-2">
+        Assumptions
+      </h4>
+      <div>
+        {assumptions.map((a, i) => {
+          const isExpanded = expandedIdx === i;
+          const hasDetail = !!(a.reason || a.alternative);
+          return (
+            <div key={i} className={`pb-1.5 ${i < assumptions.length - 1 ? "border-b border-[#1e1e1e] mb-1.5" : ""}`}>
+              <button
+                className={`w-full text-left text-xs rounded px-1.5 py-1 transition-colors ${
+                  hasDetail ? "hover:bg-white/[0.03] cursor-pointer" : "cursor-default"
+                }`}
+                onClick={() => hasDetail && setExpandedIdx(isExpanded ? null : i)}
+                disabled={!hasDetail}
+              >
+                <div className="flex items-start gap-2">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-[#555]" />
+                  <span className="text-[#c0c0c0] flex-1">{a.text}</span>
+                  {hasDetail && (
+                    <span className="text-[#555] text-[10px] shrink-0 mt-0.5">
+                      {isExpanded ? "▴" : "▾"}
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {isExpanded && (
+                <div className="flex items-start gap-2 pl-1.5 pt-1 pb-0.5">
+                  {/* L-shaped connector from dot above to explanation below */}
+                  <div
+                    className="shrink-0"
+                    style={{
+                      width: 10,
+                      height: 12,
+                      borderLeft: '1px solid #2a2a2a',
+                      borderBottom: '1px solid #2a2a2a',
+                      borderBottomLeftRadius: 3,
+                    }}
+                  />
+                  <div className="space-y-1.5">
+                    {a.reason && <p className="text-xs text-[#888] leading-relaxed">{a.reason}</p>}
+                    {a.alternative && <p className="text-xs text-[#666] leading-relaxed italic">{a.alternative}</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 interface NodeInspectorProps {
   node: CodeNode | null;
@@ -88,34 +147,7 @@ export default function NodeInspector({ node, onClose, onVariableClick, activeVa
 
       {/* Assumptions */}
       {node.assumptions.length > 0 && (
-        <div className="px-4 py-3 border-b border-[#222]">
-          <h4 className="text-[10px] font-mono tracking-wider text-[#888] uppercase mb-2">
-            Assumptions
-          </h4>
-          <div className="space-y-2">
-            {node.assumptions.map((a, i) => (
-              <div key={i} className="text-xs">
-                <div className="flex items-start gap-2">
-                  <span
-                    className={`inline-block w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
-                      a.confidence === "high"
-                        ? "bg-green-400"
-                        : a.confidence === "medium"
-                        ? "bg-yellow-400"
-                        : "bg-red-400"
-                    }`}
-                  />
-                  <span className="text-[#c0c0c0]">{a.text}</span>
-                </div>
-                {a.alternative && (
-                  <div className="ml-3.5 mt-1 text-[#888] italic">
-                    Alt: {a.alternative}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <AssumptionsSection assumptions={node.assumptions} />
       )}
 
       {/* Decision (only for decision nodes) */}
