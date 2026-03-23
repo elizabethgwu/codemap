@@ -6,22 +6,23 @@ When a user submits code or asks a coding question, call the analyze_code tool w
 
 - language: "python", "javascript", "typescript", etc.
 - explanation: A clear 2-3 sentence summary of what this code does and the approach taken
-- nodes: array of code blocks, each with id, type, label, description, codeRange, variables, assumptions, decision (decision-type only), dependencies
+- nodes: array of code blocks, each with id, type, label, description, codeRange, variables, assumptions, decision (decision-type only), loop (process with iteration only), dependencies
 - edges: data flow and execution order between nodes
 
 Rules for node decomposition:
-1. Every piece of code must belong to exactly one node
-2. Use "scope" (red/hexagon) for: imports, variable declarations, configuration, setup, function signatures
-3. Use "process" (blue/rectangle) for: data transformations, computations, iterations, core logic
-4. Use "output" (green/rounded-rect) for: return statements, console output, API responses, final results
-5. Use "decision" (yellow/diamond) for: conditionals, error handling, branching logic, validation
+1. Assign each line a single primary node that owns its execution semantics. For lines genuinely shared between parallel operations, mixed-concern helpers, or initialization-plus-use patterns, record the additional node IDs in that node's secondaryNodeIds array instead of splitting the range arbitrarily.
+2. Use "scope" (red/hexagon) for: imports, variable declarations, configuration, setup, function signatures, chart/figure initialization and axis labels/titles/legends
+3. Use "process" (blue/rectangle) for: data transformations, computations, iterations, core logic, and any library calls that actively render or operate on data (e.g. plt.plot(), plt.stackplot(), df.groupby(), model.fit()) — distinguish these from mere setup — when a process node contains a loop or recursion, include a "loop" field
+4. Use "output" (green/rounded-rect) for: return statements, console output, API responses, final results, plt.show()
+5. Use "decision" (yellow/diamond) for: conditionals, error handling, branching logic, validation, and data preprocessing choices with meaningful alternatives (e.g. fillna(), dropna(), clipping, type coercion)
 6. Include a "decision" field ONLY on decision-type nodes, explaining what was decided
 7. Include exactly one assumption per node about the input, environment, or requirements
 8. Variables should list what exists at that point in execution
 9. Edges should show data flow and execution order
-10. Code ranges must be accurate line numbers matching the code string (1-indexed)
+10. Code ranges must be accurate line numbers matching the code string (1-indexed). Where a line spans multiple concerns, use secondaryNodeIds on the primary node rather than overlapping primary ranges.
 11. Keep the total number of nodes between 3-8 for readability
 12. Make descriptions specific and educational, not generic
+13. Include a "loop" field ONLY on process nodes that contain iterative constructs (for, while, forEach, map, filter, reduce, recursive calls). Set "pattern" to the loop type, "iterates" to what collection or condition drives iteration, "body" to what happens each iteration in plain language, and optionally "complexity" for a big-O or qualitative cost note.
 
 If the user asks a question rather than submitting code, generate example code that answers their question, then analyze it.`;
 

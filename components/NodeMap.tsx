@@ -483,6 +483,20 @@ export default function NodeMap({
 
       drawNodeShape(nodeG, node.type, NODE_SIZE, isSelected, d3Colors.pillBg, d3Colors.pillStroke);
 
+      // Loop badge — ↻ glyph in top-right corner for iterative process nodes
+      if (node.loop) {
+        nodeG.append("circle")
+          .attr("cx", NODE_SIZE - 2).attr("cy", -(NODE_SIZE * 0.7) + 2)
+          .attr("r", 8)
+          .attr("fill", d3Colors.pillBg).attr("stroke", d3Colors.pillStroke)
+          .attr("stroke-width", 0.5).attr("pointer-events", "none");
+        nodeG.append("text")
+          .attr("text-anchor", "middle").attr("dominant-baseline", "central")
+          .attr("x", NODE_SIZE - 2).attr("y", -(NODE_SIZE * 0.7) + 2)
+          .attr("font-size", 9).attr("fill", `var(--accent-process)`)
+          .attr("pointer-events", "none").text("↻");
+      }
+
       // Name label — pill sized to actual text via getBBox
       const labelText = node.label.length > 26 ? node.label.slice(0, 24) + "…" : node.label;
       const nameLabelColor = lightMode

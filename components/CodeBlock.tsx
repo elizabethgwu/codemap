@@ -37,6 +37,7 @@ export default function CodeBlock({ code, language = "javascript", maxLines, cla
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prism = (window as any).Prism;
     if (!prism) return;
+    if (lang === "academic") { setHtml(null); return; }
     const grammar = prism.languages[lang] ?? prism.languages.clike ?? null;
     if (!grammar) {
       setHtml(null);

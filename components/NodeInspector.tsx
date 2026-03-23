@@ -183,6 +183,34 @@ export default function NodeInspector({ node, onClose, onVariableClick, activeVa
           </div>
         </div>
       )}
+
+      {node.loop && (
+        <div className="px-4 py-3">
+          <h4 className="text-[10px] font-mono tracking-wider uppercase mb-2" style={{ color: "var(--accent-process)" }}>
+            ↻ Iterative Execution
+          </h4>
+          <div className="text-xs space-y-2">
+            <div>
+              <span className="text-[#999]">Pattern: </span>
+              <span className="text-white font-medium font-mono">{node.loop.pattern}</span>
+            </div>
+            <div>
+              <span className="text-[#999]">Iterates over: </span>
+              <span className="text-[#c0c0c0]">{node.loop.iterates}</span>
+            </div>
+            <div>
+              <span className="text-[#999]">Each pass: </span>
+              <span className="text-[#c0c0c0]">{node.loop.body}</span>
+            </div>
+            {node.loop.complexity && (
+              <div>
+                <span className="text-[#999]">Complexity: </span>
+                <span className="text-[#c0c0c0] font-mono">{node.loop.complexity}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

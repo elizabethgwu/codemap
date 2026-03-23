@@ -28,7 +28,7 @@ function getLanguageAlias(lang: string): string {
     go: "go", java: "java", cpp: "cpp", "c++": "cpp", c: "c",
     css: "css", html: "html", bash: "bash", sh: "bash", json: "json", sql: "sql",
   };
-  return map[lang?.toLowerCase()] || "javascript";
+  return map[lang?.toLowerCase()] || lang?.toLowerCase() || "javascript";
 }
 
 function HighlightedLine({ code, language }: { code: string; language: string }) {
@@ -81,6 +81,10 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
     ? analysis.nodes.filter((n) => n.type === "decision" && n.decision).map((n) => ({ node: n, line: n.codeRange.startLine }))
     : [];
 
+  const loopAnnotations = analysis
+    ? analysis.nodes.filter((n) => n.type === "process" && n.loop).map((n) => ({ node: n, line: n.codeRange.startLine }))
+    : [];
+
   const getLineHighlight = (lineNum: number) => {
     const nodes = lineNodeMap.get(lineNum);
     if (!nodes || nodes.length === 0) return null;
@@ -121,6 +125,7 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
             const node = getNodeForLine(lineNum);
             const isBlockStart = node && node.codeRange.startLine === lineNum;
             const annotation = decisionAnnotations.find((a) => a.line === lineNum);
+            const loopAnnotation = loopAnnotations.find((a) => a.line === lineNum);
 
             const lineNodes = lineNodeMap.get(lineNum);
             const isThisNodeSelected = selectedNodeId
@@ -150,6 +155,22 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
                     </span>
                   </div>
                 )}
+                {loopAnnotation && loopAnnotation.node.loop && (
+                  <div
+                    className="flex items-center gap-2 px-4 py-1.5 text-xs border-l-2 ml-12 mr-4 my-1 rounded-r"
+                    style={{ borderColor: "var(--accent-process)", background: "color-mix(in srgb, var(--accent-process) 7%, transparent)" }}
+                  >
+                    <span style={{ color: "var(--accent-process)" }}>↻</span>
+                    <span className="text-[#888]">
+                      <strong className="text-[#ccc] font-medium">Iterates:</strong>{" "}
+                      {loopAnnotation.node.loop.iterates}
+                      <span className="text-[#999]"> — {loopAnnotation.node.loop.body}</span>
+                      {loopAnnotation.node.loop.complexity && (
+                        <span className="text-[#666]"> ({loopAnnotation.node.loop.complexity})</span>
+                      )}
+                    </span>
+                  </div>
+                )}
                 {isBlockStart && highlight && node && (
                   <div
                     className={`flex items-center gap-1.5 px-4 py-0.5 ml-12 ${analysis ? "cursor-pointer" : ""}`}
@@ -158,6 +179,19 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
                   >
                     <span className="text-[10px]">{highlight.icon}</span>
                     <span className="text-[10px] font-mono tracking-wider opacity-70">{node.label.toUpperCase()}</span>
+                    {node.secondaryNodeIds && node.secondaryNodeIds.length > 0 && analysis && (
+                      <span className="flex items-center gap-0.5 ml-1 opacity-50">
+                        {node.secondaryNodeIds.map((sid) => {
+                          const secondary = analysis.nodes.find((n) => n.id === sid);
+                          if (!secondary) return null;
+                          return (
+                            <span key={sid} title={secondary.label} style={{ color: `var(--accent-${secondary.type})`, fontSize: "8px" }}>
+                              {NODE_CONFIG[secondary.type].icon}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    )}
                   </div>
                 )}
                 <div

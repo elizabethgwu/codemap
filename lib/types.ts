@@ -25,6 +25,13 @@ export interface DecisionReason {
   }[];
 }
 
+export interface LoopAnnotation {
+  pattern: "for" | "while" | "forEach" | "map" | "filter" | "reduce" | "recursive";
+  iterates: string;    // what collection or condition drives the loop, e.g. "items array"
+  body: string;        // what happens each iteration, e.g. "accumulates running total"
+  complexity?: string; // optional, e.g. "O(n)" or "once per user"
+}
+
 export interface CodeNode {
   id: string;
   type: NodeType;
@@ -37,7 +44,9 @@ export interface CodeNode {
   variables: CodeVariable[];
   assumptions: CodeAssumption[];
   decision?: DecisionReason;
+  loop?: LoopAnnotation;
   dependencies: string[]; // IDs of nodes this depends on
+  secondaryNodeIds?: string[];  // IDs of nodes that also claim lines in this range
 }
 
 export interface CodeEdge {

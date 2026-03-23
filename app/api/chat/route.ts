@@ -78,7 +78,23 @@ const ANALYZE_CODE_TOOL: Anthropic.Tool = {
                 },
               },
             },
+            loop: {
+              type: "object",
+              description: "Optional. Include ONLY on process nodes containing iterative constructs (for, while, forEach, map, filter, reduce, recursion).",
+              required: ["pattern", "iterates", "body"],
+              properties: {
+                pattern: { type: "string", enum: ["for", "while", "forEach", "map", "filter", "reduce", "recursive"] },
+                iterates: { type: "string" },
+                body: { type: "string" },
+                complexity: { type: "string" },
+              },
+            },
             dependencies: { type: "array", items: { type: "string" } },
+            secondaryNodeIds: {
+              type: "array",
+              items: { type: "string" },
+              description: "Optional. IDs of other nodes that share lines in this range as secondary participants.",
+            },
           },
         },
       },
@@ -196,6 +212,18 @@ export async function POST(req: NextRequest) {
           console.error("Incomplete analysis — stop_reason:", response1.stop_reason, "keys:", Object.keys(coreAnalysis));
           send(`data: ${JSON.stringify({ error: "Incomplete analysis result" })}\n\n`);
           return;
+        }
+
+        // Soft overlap check — warns when two nodes claim the same line as primary
+        const seen = new Map<number, string>();
+        for (const node of coreAnalysis.nodes) {
+          for (let l = node.codeRange.startLine; l <= node.codeRange.endLine; l++) {
+            if (seen.has(l)) {
+              console.warn(`Line ${l} claimed by both ${seen.get(l)} and ${node.id} as primary — consider secondaryNodeIds`);
+            } else {
+              seen.set(l, node.id);
+            }
+          }
         }
 
         // Send the graph immediately — client renders while enrichment runs
