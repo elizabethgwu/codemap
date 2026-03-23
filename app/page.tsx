@@ -4,8 +4,6 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { AnalysisResult, ChatMessage, ConceptCard, CodeNode } from "@/lib/types";
 import ChatInput from "@/components/ChatInput";
-import PaperUpload from "@/components/PaperUpload";
-import PaperPanel from "@/components/PaperPanel";
 import CodePanel from "@/components/CodePanel";
 import NodeInspector from "@/components/NodeInspector";
 import ConceptsSidebar from "@/components/ConceptsSidebar";
@@ -28,7 +26,6 @@ export default function Home() {
   const [critiqueOpen, setCritiqueOpen] = useState(false);
   const [critiqueWidth, setCritiqueWidth] = useState(288);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [paperMode, setPaperMode] = useState(false);
   const [colorblindMode, setColorblindMode] = useState(false);
   const [lightMode, setLightMode] = useState(false);
   const [highlightedVariable, setHighlightedVariable] = useState<string | null>(null);
@@ -193,88 +190,6 @@ export default function Home() {
     }
   }, []);
 
-  const handlePaperSubmit = useCallback(async (file: File) => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    setSelectedNodeId(null);
-    setExplanationCollapsed(false);
-
-    const formData = new FormData();
-    formData.append("pdf", file);
-
-    let latestAnalysis: AnalysisResult | null = null;
-
-    try {
-      const res = await fetch("/api/paper", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok || !res.body) throw new Error("Request failed");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const data = JSON.parse(line.slice(6));
-
-          if (data.generatedCode) {
-            setSubmittedCode(data.generatedCode);
-          } else if (data.error) {
-            setErrorMessage(data.error);
-            setIsLoading(false);
-          } else if (data.analysis) {
-            const analysis = data.analysis as AnalysisResult;
-            latestAnalysis = analysis;
-            setCurrentAnalysis(analysis);
-            setIsLoading(false);
-          } else if (data.enrichment && latestAnalysis) {
-            const { concepts, critiques } = data.enrichment as Pick<AnalysisResult, "concepts" | "critiques">;
-
-            setCurrentAnalysis((prev) =>
-              prev ? { ...prev, concepts, critiques } : prev
-            );
-
-            setAllConcepts((prev) => {
-              const existing = new Set(prev.map((c) => c.title));
-              const paragraphLines = submittedCodeRef.current?.split("\n") ?? [];
-              const newConcepts = concepts
-                .filter((c) => !existing.has(c.title))
-                .map((c) => {
-                  if (c.nodeId) {
-                    const node = latestAnalysis!.nodes.find((n) => n.id === c.nodeId);
-                    if (node) {
-                      c.codeSnippet = paragraphLines
-                        .slice(node.codeRange.startLine - 1, node.codeRange.endLine)
-                        .join("\n");
-                      c.language = "academic";
-                    }
-                  }
-                  return c;
-                });
-              return [...prev, ...newConcepts];
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Paper fetch error:", err);
-      setErrorMessage("Something went wrong. Please check your API key and try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   const handleNodeSelect = useCallback((nodeId: string | null) => {
     setSelectedNodeId(nodeId);
     setHighlightedVariable(null);
@@ -378,20 +293,6 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Paper mode toggle */}
-          <button
-            onClick={() => { setPaperMode((v) => !v); handleNew(); }}
-            className={`h-7 px-2.5 rounded-full border flex items-center gap-1.5 text-[10px] font-mono tracking-wide transition-colors ${
-              paperMode
-                ? "border-[#E5A832] text-[#E5A832] bg-[#E5A832]/10"
-                : "border-[#444] text-[#888] hover:text-[#ccc] hover:border-[#666]"
-            }`}
-            title={paperMode ? "Switch to code mode" : "Switch to paper mode (beta)"}
-          >
-            ◉ paper mode
-            <span className="text-[8px] border border-current rounded px-1 py-px opacity-60">BETA</span>
-          </button>
-
           {/* Dark / Light mode toggle */}
           <button
             onClick={() => setLightMode((v) => !v)}
@@ -511,7 +412,7 @@ export default function Home() {
                 {/* Header */}
                 <div className="flex items-center border-b border-[#222] shrink-0">
                   <span className="px-4 py-2 text-[10px] font-mono tracking-wider text-[#aaa]">
-                    {paperMode ? "YOUR PAPER" : "YOUR CODE"}
+                    YOUR CODE
                   </span>
                   <button
                     onClick={handleNew}
@@ -521,27 +422,15 @@ export default function Home() {
                   </button>
                 </div>
 
-                {paperMode ? (
-                  <PaperPanel
-                    submittedCode={submittedCode}
-                    analysis={currentAnalysis}
-                    selectedNodeId={selectedNodeId}
-                    onNodeSelect={handleNodeSelect}
-                    colorblindMode={colorblindMode}
-                  />
-                ) : (
-                  <CodePanel
-                    submittedCode={submittedCode}
-                    analysis={currentAnalysis}
-                    selectedNodeId={selectedNodeId}
-                    onNodeSelect={handleNodeSelect}
-                    highlightedVariable={highlightedVariable}
-                    colorblindMode={colorblindMode}
-                  />
-                )}
+                <CodePanel
+                  submittedCode={submittedCode}
+                  analysis={currentAnalysis}
+                  selectedNodeId={selectedNodeId}
+                  onNodeSelect={handleNodeSelect}
+                  highlightedVariable={highlightedVariable}
+                  colorblindMode={colorblindMode}
+                />
               </>
-            ) : paperMode ? (
-              <PaperUpload onSubmit={handlePaperSubmit} isLoading={isLoading} />
             ) : (
               <ChatInput onSubmit={handleSubmit} isLoading={isLoading} variant="side" />
             )}
@@ -633,32 +522,27 @@ export default function Home() {
                   <span className="text-2xl">◈</span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold mb-2">
-                    {paperMode ? "Visual Writing Reasoning" : "Visual Code Reasoning"}
-                  </h2>
+                  <h2 className="text-lg font-semibold mb-2">Visual Code Reasoning</h2>
                   <p className="text-sm text-[#888] leading-relaxed">
-                    {paperMode
-                      ? "Upload an academic paper. Greybox maps its argument structure into visual nodes showing thesis, reasoning, conclusions, and counterarguments."
-                      : <>Paste code or describe a problem. Greybox breaks it into navigable visual nodes showing scope, processing, output, and decision points.<span> For best results, keep code snippets under 200 lines or ask a question.</span></>
-                    }
+                    Paste code or describe a problem. Greybox breaks it into navigable visual nodes showing scope, processing, output, and decision points.<span> For best results, keep code snippets under 200 lines or ask a question.</span>
                   </p>
                 </div>
                 <div className="flex justify-center gap-6 text-xs">
                   <div className="flex items-center gap-1.5">
                     <span style={{ color: "var(--accent-scope)" }}>◈</span>
-                    <span className="text-[#999]">{paperMode ? "Thesis" : "Scope"}</span>
+                    <span className="text-[#999]">Scope</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span style={{ color: "var(--accent-process)" }}>■</span>
-                    <span className="text-[#999]">{paperMode ? "Argument" : "Process"}</span>
+                    <span className="text-[#999]">Process</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span style={{ color: "var(--accent-output)" }}>◉</span>
-                    <span className="text-[#999]">{paperMode ? "Conclusion" : "Output"}</span>
+                    <span className="text-[#999]">Output</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span style={{ color: "var(--accent-decision)" }}>⟐</span>
-                    <span className="text-[#999]">{paperMode ? "Evidence" : "Decision"}</span>
+                    <span className="text-[#999]">Decision</span>
                   </div>
                 </div>
 
