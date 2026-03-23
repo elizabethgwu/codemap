@@ -85,6 +85,10 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
     ? analysis.nodes.filter((n) => n.type === "process" && n.loop).map((n) => ({ node: n, line: n.codeRange.startLine }))
     : [];
 
+  const parallelAnnotations = analysis
+    ? analysis.nodes.filter((n) => !!n.parallelGroupId).map((n) => ({ node: n, line: n.codeRange.startLine }))
+    : [];
+
   const getLineHighlight = (lineNum: number) => {
     const nodes = lineNodeMap.get(lineNum);
     if (!nodes || nodes.length === 0) return null;
@@ -126,6 +130,7 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
             const isBlockStart = node && node.codeRange.startLine === lineNum;
             const annotation = decisionAnnotations.find((a) => a.line === lineNum);
             const loopAnnotation = loopAnnotations.find((a) => a.line === lineNum);
+            const parallelAnnotation = parallelAnnotations.find((a) => a.line === lineNum);
 
             const lineNodes = lineNodeMap.get(lineNum);
             const isThisNodeSelected = selectedNodeId
@@ -168,6 +173,19 @@ export default function CodePanel({ submittedCode, analysis, selectedNodeId, onN
                       {loopAnnotation.node.loop.complexity && (
                         <span className="text-[#666]"> ({loopAnnotation.node.loop.complexity})</span>
                       )}
+                    </span>
+                  </div>
+                )}
+                {parallelAnnotation && (
+                  <div
+                    className="flex items-center gap-2 px-4 py-1.5 text-xs border-l-2 ml-12 mr-4 my-1 rounded-r"
+                    style={{ borderColor: "rgba(74,144,217,0.7)", background: "color-mix(in srgb, var(--accent-process) 7%, transparent)" }}
+                  >
+                    <span style={{ color: "var(--accent-process)" }}>∥</span>
+                    <span className="text-[#888]">
+                      <strong className="text-[#ccc] font-medium">Parallel:</strong>{" "}
+                      runs concurrently with other nodes in group{" "}
+                      <span className="text-[#999] font-mono">{parallelAnnotation.node.parallelGroupId}</span>
                     </span>
                   </div>
                 )}

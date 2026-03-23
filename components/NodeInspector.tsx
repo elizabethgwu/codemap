@@ -184,6 +184,21 @@ export default function NodeInspector({ node, onClose, onVariableClick, activeVa
         </div>
       )}
 
+      {node.parallelGroupId && (
+        <div className="px-4 py-3">
+          <h4 className="text-[10px] font-mono tracking-wider uppercase mb-2" style={{ color: "var(--accent-process)" }}>
+            ∥ Concurrent Execution
+          </h4>
+          <div className="text-xs space-y-2">
+            <div>
+              <span className="text-[#999]">Group: </span>
+              <span className="text-white font-medium font-mono">{node.parallelGroupId}</span>
+            </div>
+            <div className="text-[#999]">Runs in parallel with other nodes sharing this group</div>
+          </div>
+        </div>
+      )}
+
       {node.loop && (
         <div className="px-4 py-3">
           <h4 className="text-[10px] font-mono tracking-wider uppercase mb-2" style={{ color: "var(--accent-process)" }}>

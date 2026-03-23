@@ -89,6 +89,10 @@ const ANALYZE_CODE_TOOL: Anthropic.Tool = {
                 complexity: { type: "string" },
               },
             },
+            parallelGroupId: {
+              type: "string",
+              description: "Optional. Assign the same string to all nodes that execute concurrently within a single parallel construct (asyncio.gather, Promise.all, thread pool dispatch, etc.). Use short keys like 'pg1', 'pg2'. Omit on sequential nodes.",
+            },
             dependencies: { type: "array", items: { type: "string" } },
             secondaryNodeIds: {
               type: "array",

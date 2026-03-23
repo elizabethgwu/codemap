@@ -45,6 +45,7 @@ export interface CodeNode {
   assumptions: CodeAssumption[];
   decision?: DecisionReason;
   loop?: LoopAnnotation;
+  parallelGroupId?: string;  // nodes sharing this string run concurrently (e.g. asyncio.gather, Promise.all)
   dependencies: string[]; // IDs of nodes this depends on
   secondaryNodeIds?: string[];  // IDs of nodes that also claim lines in this range
 }

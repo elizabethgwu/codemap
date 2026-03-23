@@ -422,6 +422,41 @@ export default function NodeMap({
       edgeRect.attr("x", -ew / 2).attr("width", ew);
     });
 
+    // Parallel bands — drawn above edges but below nodes
+    const parallelGroups = new Map<string, typeof layoutNodes>();
+    for (const node of layoutNodes) {
+      if (!node.parallelGroupId) continue;
+      const grp = parallelGroups.get(node.parallelGroupId) ?? [];
+      grp.push(node);
+      parallelGroups.set(node.parallelGroupId, grp);
+    }
+    const parallelBandsG = g.append("g").attr("class", "parallel-bands");
+    parallelGroups.forEach((groupNodes) => {
+      if (groupNodes.length < 2) return;
+      const ys = groupNodes.map((n) => n.y);
+      if (!ys.every((y) => Math.abs(y - ys[0]) < 1)) return; // skip cross-layer groups
+      const xs = groupNodes.map((n) => n.x);
+      const bandPad = 20;
+      const bandLeft = Math.min(...xs) - 60;
+      const bandWidth = Math.max(...xs) - Math.min(...xs) + 120;
+      const bandTop = ys[0] - NODE_SIZE - bandPad;
+      const bandHeight = (NODE_SIZE + bandPad) * 2;
+      const bandFill = lightMode ? "rgba(74,144,217,0.06)" : "rgba(74,144,217,0.08)";
+      const bandStroke = lightMode ? "rgba(74,144,217,0.25)" : "rgba(74,144,217,0.30)";
+      parallelBandsG.append("rect")
+        .attr("x", bandLeft).attr("y", bandTop)
+        .attr("width", bandWidth).attr("height", bandHeight)
+        .attr("rx", 10).attr("fill", bandFill)
+        .attr("stroke", bandStroke).attr("stroke-width", 1)
+        .attr("stroke-dasharray", "4,3").attr("pointer-events", "none");
+      parallelBandsG.append("text")
+        .attr("x", bandLeft + 10).attr("y", bandTop + 11)
+        .attr("font-size", 8).attr("font-family", "monospace")
+        .attr("font-weight", "500").attr("letter-spacing", "0.08em")
+        .attr("fill", lightMode ? "rgba(74,144,217,0.55)" : "rgba(74,144,217,0.50)")
+        .attr("pointer-events", "none").text("∥ PARALLEL");
+    });
+
     // Nodes — selected node rendered last so it appears above all paths
     const sortedNodes = [...layoutNodes].sort((a, b) =>
       a.id === selectedNodeId ? 1 : b.id === selectedNodeId ? -1 : 0

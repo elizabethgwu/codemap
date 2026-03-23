@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { AnalysisResult, ChatMessage, ConceptCard, CodeNode } from "@/lib/types";
 import ChatInput from "@/components/ChatInput";
 import PaperUpload from "@/components/PaperUpload";
+import PaperPanel from "@/components/PaperPanel";
 import CodePanel from "@/components/CodePanel";
 import NodeInspector from "@/components/NodeInspector";
 import ConceptsSidebar from "@/components/ConceptsSidebar";
@@ -520,14 +521,24 @@ export default function Home() {
                   </button>
                 </div>
 
-                <CodePanel
-                  submittedCode={submittedCode}
-                  analysis={currentAnalysis}
-                  selectedNodeId={selectedNodeId}
-                  onNodeSelect={handleNodeSelect}
-                  highlightedVariable={highlightedVariable}
-                  colorblindMode={colorblindMode}
-                />
+                {paperMode ? (
+                  <PaperPanel
+                    submittedCode={submittedCode}
+                    analysis={currentAnalysis}
+                    selectedNodeId={selectedNodeId}
+                    onNodeSelect={handleNodeSelect}
+                    colorblindMode={colorblindMode}
+                  />
+                ) : (
+                  <CodePanel
+                    submittedCode={submittedCode}
+                    analysis={currentAnalysis}
+                    selectedNodeId={selectedNodeId}
+                    onNodeSelect={handleNodeSelect}
+                    highlightedVariable={highlightedVariable}
+                    colorblindMode={colorblindMode}
+                  />
+                )}
               </>
             ) : paperMode ? (
               <PaperUpload onSubmit={handlePaperSubmit} isLoading={isLoading} />
@@ -623,12 +634,12 @@ export default function Home() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold mb-2">
-                    {paperMode ? "Visual Paper Reasoning" : "Visual Code Reasoning"}
+                    {paperMode ? "Visual Writing Reasoning" : "Visual Code Reasoning"}
                   </h2>
                   <p className="text-sm text-[#888] leading-relaxed">
                     {paperMode
-                      ? "Upload an academic paper. Greybox maps its argument structure into visual nodes showing thesis, reasoning, conclusions, and counterarguments — so you can navigate the logic, not just read the text."
-                      : <>Paste code or describe a problem. Greybox breaks it into navigable visual nodes showing scope, processing, output, and decision points — so you can see the reasoning, not just the result.<span> For best results, keep code snippets under 200 lines or ask a question.</span></>
+                      ? "Upload an academic paper. Greybox maps its argument structure into visual nodes showing thesis, reasoning, conclusions, and counterarguments."
+                      : <>Paste code or describe a problem. Greybox breaks it into navigable visual nodes showing scope, processing, output, and decision points.<span> For best results, keep code snippets under 200 lines or ask a question.</span></>
                     }
                   </p>
                 </div>

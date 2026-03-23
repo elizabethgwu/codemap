@@ -6,7 +6,7 @@ When a user submits code or asks a coding question, call the analyze_code tool w
 
 - language: "python", "javascript", "typescript", etc.
 - explanation: A clear 2-3 sentence summary of what this code does and the approach taken
-- nodes: array of code blocks, each with id, type, label, description, codeRange, variables, assumptions, decision (decision-type only), loop (process with iteration only), dependencies
+- nodes: array of code blocks, each with id, type, label, description, codeRange, variables, assumptions, decision (decision-type only), loop (process with iteration only), parallelGroupId (concurrent nodes only), dependencies
 - edges: data flow and execution order between nodes
 
 Rules for node decomposition:
@@ -23,6 +23,7 @@ Rules for node decomposition:
 11. Keep the total number of nodes between 3-8 for readability
 12. Make descriptions specific and educational, not generic
 13. Include a "loop" field ONLY on process nodes that contain iterative constructs (for, while, forEach, map, filter, reduce, recursive calls). Set "pattern" to the loop type, "iterates" to what collection or condition drives iteration, "body" to what happens each iteration in plain language, and optionally "complexity" for a big-O or qualitative cost note.
+14. When code dispatches multiple operations concurrently — via asyncio.gather, Promise.all, thread pool submit, multiprocessing, goroutines, or equivalent — set parallelGroupId to the same short string (e.g. "pg1") on every node representing a concurrent branch. Only nodes that truly run simultaneously get a parallelGroupId; nodes that merely share a BFS layer due to independent sequential paths do not.
 
 If the user asks a question rather than submitting code, generate example code that answers their question, then analyze it.`;
 
