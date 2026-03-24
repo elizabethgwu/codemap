@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConceptCard } from "@/lib/types";
 import CodeBlock from "@/components/CodeBlock";
 
@@ -13,6 +13,8 @@ interface ConceptsSidebarProps {
   onDragStart: (e: React.MouseEvent) => void;
   selectedNodeId?: string | null;
   onNodeSelect?: (nodeId: string | null) => void;
+  onScrollRequest?: () => void;
+  onCardExpand?: () => void;
   onPanelDragStart: (id: string) => void;
   onPanelDragOver: (id: string) => void;
   onPanelDrop: () => void;
@@ -35,12 +37,14 @@ function CodeSnippet({
   nodeId,
   isActive,
   onNodeSelect,
+  onScrollRequest,
 }: {
   code: string;
   language?: string;
   nodeId: string;
   isActive: boolean;
   onNodeSelect?: (nodeId: string | null) => void;
+  onScrollRequest?: () => void;
 }) {
 
   return (
@@ -50,8 +54,8 @@ function CodeSnippet({
           ? "border-[#444] bg-[#1a1a1a]"
           : "border-[#1e1e1e] bg-[#0d0d0d] hover:border-[#333] hover:bg-[#141414]"
       }`}
-      onClick={() => onNodeSelect?.(isActive ? null : nodeId)}
-      title={isActive ? "Deselect in code" : "Highlight in code"}
+      onClick={() => { onNodeSelect?.(nodeId); onScrollRequest?.(); }}
+      title="Jump to in code"
     >
       {/* snippet header */}
       <div className={`flex items-center justify-between px-2.5 py-1.5 border-b ${isActive ? "border-[#333]" : "border-[#1e1e1e] group-hover:border-[#2a2a2a]"}`}>
@@ -77,25 +81,45 @@ function ConceptCardItem({
   concept,
   selectedNodeId,
   onNodeSelect,
+  onScrollRequest,
+  onCardExpand,
+  panelOpen,
 }: {
   concept: ConceptCard;
   selectedNodeId?: string | null;
   onNodeSelect?: (nodeId: string | null) => void;
+  onScrollRequest?: () => void;
+  onCardExpand?: () => void;
+  panelOpen: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  useEffect(() => { if (!panelOpen) setExpanded(false); }, [panelOpen]);
 
   return (
     <div className="rounded-lg border border-[#222] bg-[#111] overflow-hidden">
       {/* Header — always visible, clicking expands */}
       <button
         className="w-full text-left px-3 pt-3 pb-2 flex items-start justify-between gap-2 hover:bg-white/[0.02] transition-colors"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => { const next = !expanded; setExpanded(next); if (next) onCardExpand?.(); }}
       >
         <h4 className="text-sm font-semibold text-white leading-tight">{concept.title}</h4>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="text-[9px] font-mono tracking-wider px-1.5 py-0.5 rounded bg-[#222] text-[#999]">
             {concept.difficulty.toUpperCase()}
           </span>
+          <a
+            href={`https://www.google.com/search?q=${encodeURIComponent(concept.title + " examples")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#555] hover:text-[#4A90D9] transition-colors"
+            onClick={(e) => e.stopPropagation()}
+            title={`Search "${concept.title} examples"`}
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <circle cx="5" cy="5" r="3.5" stroke="currentColor" strokeWidth="1.3"/>
+              <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
+          </a>
           <span className="text-[#555] text-[10px]">{expanded ? "▴" : "▾"}</span>
         </div>
       </button>
@@ -128,6 +152,7 @@ function ConceptCardItem({
                 nodeId={concept.nodeId}
                 isActive={selectedNodeId === concept.nodeId}
                 onNodeSelect={onNodeSelect}
+                onScrollRequest={onScrollRequest}
               />
             )}
           </div>
@@ -146,6 +171,8 @@ export default function ConceptsSidebar({
   onDragStart,
   selectedNodeId,
   onNodeSelect,
+  onScrollRequest,
+  onCardExpand,
   onPanelDragStart,
   onPanelDragOver,
   onPanelDrop,
@@ -238,6 +265,9 @@ export default function ConceptsSidebar({
                     concept={concept}
                     selectedNodeId={selectedNodeId}
                     onNodeSelect={onNodeSelect}
+                    onScrollRequest={onScrollRequest}
+                    onCardExpand={onCardExpand}
+                    panelOpen={isOpen}
                   />
                 ))
               )}

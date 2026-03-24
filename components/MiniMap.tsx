@@ -17,6 +17,8 @@ export default function MiniMap({ nodes, edges, selectedNodeId, onNodeSelect, co
   const W = 200;
   const H = 160;
 
+  const [collapsed, setCollapsed] = useState(false);
+
   // Drag state — default to bottom-left so it doesn't clash with NodeInspector on the right
   const [pos, setPos] = useState({ bottom: 16, left: 16 });
   const isDragging = useRef(false);
@@ -147,9 +149,16 @@ export default function MiniMap({ nodes, edges, selectedNodeId, onNodeSelect, co
         onMouseDown={handleMouseDown}
       >
         <span className="text-[10px] font-mono tracking-wider text-[#888] uppercase">Minimap</span>
-        <span className="text-[#888] text-[10px] ml-auto">⠿</span>
+        <button
+          className="text-[#888] hover:text-[#ccc] text-[10px] ml-auto leading-none"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? "Expand minimap" : "Collapse minimap"}
+        >
+          {collapsed ? "▲" : "▼"}
+        </button>
       </div>
-      <svg ref={svgRef} width={W} height={H} />
+      <svg ref={svgRef} width={W} height={H} style={{ display: collapsed ? "none" : "block" }} />
     </div>
   );
 }

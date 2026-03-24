@@ -61,9 +61,11 @@ export interface CritiqueCard {
   title: string;
   summary: string;       // one-line description of the alternative approach
   explanation: string;   // plain-language explanation of how this approach differs
-  tradeoff: string;      // what you gain and what you give up
+  upside: string;        // what you gain
+  downside: string;      // what you give up
   complexity: "simpler" | "similar" | "more complex";
   codeExample?: string;  // short code snippet showing the alternative in action
+  nodeId?: string;       // id of the node whose code this critique suggests rewriting
 }
 
 export interface AnalysisResult {

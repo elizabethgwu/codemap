@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CritiqueCard } from "@/lib/types";
 import CodeBlock from "@/components/CodeBlock";
 
@@ -15,6 +15,8 @@ interface CritiquePanelProps {
   onPanelDragStart: (id: string) => void;
   onPanelDragOver: (id: string) => void;
   onPanelDrop: () => void;
+  onSelectNode?: (nodeId: string | null) => void;
+  onExpand?: () => void;
 }
 
 const COMPLEXITY_LABEL: Record<CritiqueCard["complexity"], string> = {
@@ -23,15 +25,16 @@ const COMPLEXITY_LABEL: Record<CritiqueCard["complexity"], string> = {
   "more complex": "MORE COMPLEX",
 };
 
-function CritiqueCardItem({ critique, language }: { critique: CritiqueCard; language: string }) {
+function CritiqueCardItem({ critique, language, onSelectNode, onExpand, panelOpen }: { critique: CritiqueCard; language: string; onSelectNode?: (nodeId: string | null) => void; onExpand?: () => void; panelOpen: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  useEffect(() => { if (!panelOpen) setExpanded(false); }, [panelOpen]);
 
   return (
     <div className="rounded-lg border border-[#222] bg-[#111] overflow-hidden">
       {/* Header — always visible, clicking expands */}
       <button
         className="w-full text-left px-3 pt-3 pb-2 flex items-start justify-between gap-2 hover:bg-white/[0.02] transition-colors"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => { const expanding = !expanded; setExpanded(expanding); if (expanding) onExpand?.(); }}
       >
         <h4 className="text-sm font-semibold text-white leading-tight">{critique.title}</h4>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -58,9 +61,15 @@ function CritiqueCardItem({ critique, language }: { critique: CritiqueCard; lang
 
           {/* Code example */}
           {critique.codeExample && (
-            <div className="rounded border border-[#1e1e1e] overflow-hidden">
-              <div className="flex items-center px-2.5 py-1.5 border-b border-[#1e1e1e]">
+            <div
+              className={`rounded border border-[#1e1e1e] overflow-hidden group ${onSelectNode && critique.nodeId ? "cursor-pointer hover:border-[#333] transition-colors" : ""}`}
+              onClick={() => { if (critique.nodeId) onSelectNode?.(critique.nodeId); }}
+            >
+              <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-[#1e1e1e]">
                 <span className="text-[9px] font-mono tracking-widest text-[#999]">EXAMPLE</span>
+                {critique.nodeId && (
+                  <span className="text-[9px] font-mono text-[#888] group-hover:text-[#bbb] transition-colors">↗ jump</span>
+                )}
               </div>
               <div className="px-2.5 py-2">
                 <CodeBlock code={critique.codeExample} language={language} maxLines={20} />
@@ -68,25 +77,24 @@ function CritiqueCardItem({ critique, language }: { critique: CritiqueCard; lang
             </div>
           )}
 
-          {/* Tradeoff */}
-          <div className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-[#999]">
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                <path
-                  d="M6 1a3.5 3.5 0 0 1 1.5 6.67V9H4.5V7.67A3.5 3.5 0 0 1 6 1z"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M4.5 10h3M5 11h2"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>
-            <p className="text-xs text-[#999] leading-relaxed">{critique.tradeoff}</p>
+          {/* Upside / Downside */}
+          <div className="space-y-1.5">
+            <div className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-[#999]">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1L6 11M1 6L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </span>
+              <p className="text-xs text-[#bbb] leading-relaxed"><span className="font-semibold">Upside:</span> {critique.upside}</p>
+            </div>
+            <div className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-[#999]">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                  <path d="M1 6L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </span>
+              <p className="text-xs text-[#bbb] leading-relaxed"><span className="font-semibold">Downside:</span> {critique.downside}</p>
+            </div>
           </div>
         </div>
       )}
@@ -105,6 +113,8 @@ export default function CritiquePanel({
   onPanelDragStart,
   onPanelDragOver,
   onPanelDrop,
+  onSelectNode,
+  onExpand,
 }: CritiquePanelProps) {
   return (
     <div className="shrink-0 flex">
@@ -149,7 +159,7 @@ export default function CritiquePanel({
               </p>
             ) : (
               critiques.map((c) => (
-                <CritiqueCardItem key={c.id} critique={c} language={language} />
+                <CritiqueCardItem key={c.id} critique={c} language={language} onSelectNode={onSelectNode} onExpand={onExpand} panelOpen={isOpen} />
               ))
             )}
           </div>

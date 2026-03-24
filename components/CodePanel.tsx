@@ -19,6 +19,8 @@ interface CodePanelProps {
   onNodeSelect: (nodeId: string | null) => void;
   highlightedVariable?: string | null;
   colorblindMode?: boolean;
+  scrollTrigger?: number;
+  scrollToNodeId?: string | null;
 }
 
 function getLanguageAlias(lang: string): string {
@@ -46,11 +48,20 @@ function HighlightedLine({ code, language }: { code: string; language: string })
   return <code ref={ref} className={`language-${language}`}>{code || " "}</code>;
 }
 
-export default function CodePanel({ submittedCode, analysis, selectedNodeId, onNodeSelect, highlightedVariable, colorblindMode }: CodePanelProps) {
+export default function CodePanel({ submittedCode, analysis, selectedNodeId, onNodeSelect, highlightedVariable, colorblindMode, scrollTrigger, scrollToNodeId }: CodePanelProps) {
   const code = submittedCode ?? "";
   const language = analysis?.language ? getLanguageAlias(analysis.language) : "javascript";
   const lines = code.split("\n");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to the selected node whenever selectedNodeId or scrollTrigger changes
+  useEffect(() => {
+    if (!selectedNodeId || !analysis) return;
+    const node = analysis.nodes.find((n) => n.id === selectedNodeId);
+    if (!node) return;
+    const el = scrollContainerRef.current?.querySelector(`[data-line="${node.codeRange.startLine}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [selectedNodeId, analysis, scrollTrigger]);
 
   // Scroll to the first line containing the highlighted variable within the selected node
   useEffect(() => {

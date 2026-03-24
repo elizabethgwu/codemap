@@ -149,15 +149,17 @@ const ENRICH_ANALYSIS_TOOL: Anthropic.Tool = {
         maxItems: 2,
         items: {
           type: "object",
-          required: ["id", "title", "summary", "explanation", "tradeoff", "complexity"],
+          required: ["id", "title", "summary", "explanation", "upside", "downside", "complexity", "nodeId"],
           properties: {
             id: { type: "string" },
             title: { type: "string" },
             summary: { type: "string" },
             explanation: { type: "string" },
-            tradeoff: { type: "string" },
+            upside: { type: "string" },
+            downside: { type: "string" },
             complexity: { type: "string", enum: ["simpler", "similar", "more complex"] },
             codeExample: { type: "string", description: "Optional. 5–8 lines maximum. Omit if not needed." },
+            nodeId: { type: "string", description: "ID of the node whose code this critique suggests rewriting." },
           },
         },
       },
@@ -207,6 +209,7 @@ export async function POST(req: NextRequest) {
         const coreAnalysis = toolBlock1.input as RawAnalysis;
 
         // If Claude generated code (question mode), emit it before the graph event
+        const actualCode = coreAnalysis.code ?? message;
         if (coreAnalysis.code) {
           send(`data: ${JSON.stringify({ generatedCode: coreAnalysis.code })}\n\n`);
           delete coreAnalysis.code;
@@ -247,7 +250,7 @@ export async function POST(req: NextRequest) {
             system: ENRICH_SYSTEM_PROMPT,
             tools: [ENRICH_ANALYSIS_TOOL],
             tool_choice: { type: "tool", name: "enrich_analysis" },
-            messages: [{ role: "user", content: buildEnrichMessage(message, coreAnalysis) }],
+            messages: [{ role: "user", content: buildEnrichMessage(actualCode, coreAnalysis) }],
           });
           const response2 = await stream2.finalMessage();
 

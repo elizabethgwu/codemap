@@ -25,6 +25,8 @@ export default function Home() {
   const [conceptsWidth, setConceptsWidth] = useState(288);
   const [critiqueOpen, setCritiqueOpen] = useState(false);
   const [critiqueWidth, setCritiqueWidth] = useState(288);
+  const [codePanelScrollTrigger, setCodePanelScrollTrigger] = useState(0);
+  const [codePanelScrollNodeId, setCodePanelScrollNodeId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [colorblindMode, setColorblindMode] = useState(false);
   const [lightMode, setLightMode] = useState(false);
@@ -32,6 +34,7 @@ export default function Home() {
   const [infoOpen, setInfoOpen] = useState(false);
   const infoRef = useRef<HTMLDivElement>(null);
   const [explanationCollapsed, setExplanationCollapsed] = useState(false);
+  const summaryRef = useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = useState(500);
   const [mapDimensions, setMapDimensions] = useState({ width: 600, height: 500 });
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -68,6 +71,17 @@ export default function Home() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [infoOpen]);
+
+  useEffect(() => {
+    if (explanationCollapsed) return;
+    const handler = (e: MouseEvent) => {
+      if (summaryRef.current && !summaryRef.current.contains(e.target as Node)) {
+        setExplanationCollapsed(true);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [explanationCollapsed]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("colorblind", colorblindMode);
@@ -151,7 +165,7 @@ export default function Home() {
             // Accumulate concepts (dedup by title), attaching code snippets
             setAllConcepts((prev) => {
               const existing = new Set(prev.map((c) => c.title));
-              const codeLines = message.split("\n");
+              const codeLines = (submittedCodeRef.current ?? message).split("\n");
               const newConcepts = concepts
                 .filter((c) => !existing.has(c.title))
                 .map((c) => {
@@ -429,6 +443,8 @@ export default function Home() {
                   onNodeSelect={handleNodeSelect}
                   highlightedVariable={highlightedVariable}
                   colorblindMode={colorblindMode}
+                  scrollTrigger={codePanelScrollTrigger}
+                  scrollToNodeId={codePanelScrollNodeId}
                 />
               </>
             ) : (
@@ -478,7 +494,7 @@ export default function Home() {
               />
 
               {/* Collapsible explanation banner */}
-              <div className="absolute top-4 left-4 max-w-xs">
+              <div ref={summaryRef} className="absolute top-4 left-4 max-w-xs">
                 <div className="bg-[#111]/90 backdrop-blur-sm border border-[#222] rounded-lg overflow-hidden">
                   <button
                     onClick={() => setExplanationCollapsed((v) => !v)}
@@ -566,6 +582,8 @@ export default function Home() {
               onDragStart={handleConceptsDragStart}
               selectedNodeId={selectedNodeId}
               onNodeSelect={handleNodeSelect}
+              onScrollRequest={() => setCodePanelScrollTrigger((v) => v + 1)}
+              onCardExpand={() => setCritiqueOpen(false)}
               onPanelDragStart={handlePanelReorderDragStart}
               onPanelDragOver={handlePanelReorderDragOver}
               onPanelDrop={handlePanelReorderDrop}
@@ -584,6 +602,8 @@ export default function Home() {
               onPanelDragStart={handlePanelReorderDragStart}
               onPanelDragOver={handlePanelReorderDragOver}
               onPanelDrop={handlePanelReorderDrop}
+              onSelectNode={(nodeId) => { handleNodeSelect(nodeId); setCodePanelScrollTrigger((t) => t + 1); }}
+              onExpand={() => setConceptsOpen(false)}
             />
           );
           return null;
